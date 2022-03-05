@@ -131,6 +131,7 @@ const app = Vue.createApp({
           this.deleteCartItem();
           this.cartList = [];
           alert('訂單成功建立，返回商品頁');
+          this.pagination.currentPage = 1;
           this.changePage();
         })
         .catch(err => {
