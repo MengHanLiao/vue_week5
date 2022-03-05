@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/vue@next"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@5.0.2/dist/vue-loading.css">
+  <script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@5.0.2/dist/vue-loading.min.js"></script>
+  <link rel="stylesheet" href="./dist/output.css">
+  <title>Vue week5</title>
+</head>
+  <body>
+    <div id="app">
+      <div class="container px-5 mx-auto">
+        <h1 class="text-3xl text-center tracking-widest font-bold mt-3 ml-3 mb-12">點心時間</h1>
+        <template v-if="isNextPage">
+          <div class="flex flex-col lg:flex-row lg:gap-x-6">
+            <div class="lg:w-2/3 mb-16">
+              <!-- 商品列表 -->
+              <div class="flex flex-col gap-y-6">
+                <h2 class="text-2xl border-l-4 border-red-500 pl-2">商品列表</h2>
+                <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-6">
+                  <li class="hover:drop-shadow-md"
+                    v-for="product in productList" :key="product.id"> 
+                    <img class="object-cover w-full h-48"
+                      :src="product.imageUrl">
+                    <div class="bg-gray-50 p-4">
+                      <h4 class="font-bold text-xl text-slate-700 leading-snug mb-3">{{ product.title }}</h4>
+                      <div class="text-right text-lg text-red-500 mb-3">
+                        <del class="text-sm text-slate-500 mr-2">原價{{ product.origin_price }}</del>
+                        折後 {{ product.price }}
+                      </div>
+                      <button class="block w-full border-2 border-red-200 hover:border-red-400 font-semibold py-2 mb-2"
+                        type="button" aria-label="more"
+                        @click="productDetail = product, openModal()">查看更多資訊</button>
+                      <button class="block w-full bg-red-200 font-semibold hover:bg-red-300 py-2"
+                        type="button" aria-label="addToCart"
+                        @click="updateCartItem(product.id, 1)">加入購物車</button>
+                    </div>
+                  </li>
+                </ul>
+                <pagination></pagination>
+                <product-modal
+                  :is-open-modal="isOpenModal"
+                  :product-detail="productDetail"
+                  @update-cart-item="updateCartItem" 
+                  @close-product-modal="closeModal"></product-modal>
+              </div>
+            </div>
+            <div class="lg:w-1/3 bg-slate-100 p-6">
+              <!-- 購物車列表 -->
+              <div class="flex flex-col">
+                <h2 class="text-2xl border-l-4 border-red-500 pl-2 mb-3">購物車</h2>
+                <template v-if="cartList.length === 0">
+                  <p class="text-xl bg-white p-4 mb-4">歡迎光臨，請選購喜歡的商品</p>
+                </template>
+                <template v-else>
+                  <button class="self-end w-32 border-2 border-slate-200 bg-slate-50 hover:bg-slate-300 font-semibold p-2 mb-3"
+                    type="button" aria-label="deleteAllProducts"
+                    @click="deleteCartItem()" >刪除所有商品</button>
+                  <ul class="mb-3 border-b-2 border-slate-200 pb-4">
+                    <li class="mb-3 last-of-type:mb-0"
+                      v-for="item in cartList" :key="item.id">
+                      <div class="grow flex flex-col justify-between bg-white p-4">
+                        <div class="flex justify-between items-start mb-4">
+                          <h4 class="font-bold text-xl text-slate-700">{{ item.product.title }}</h4>
+                          <button class="block w-8 h-8 hover:bg-red-200 p-1"
+                            type="button" aria-label="delete"
+                            @click="deleteCartItem(item.id)" >
+                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
+                              <path d="M0 0h24v24H0V0z" fill="none" />
+                              <path
+                                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div class="flex justify-between items-center">
+                          <p class="text-right text-lg font-bold text-red-300">總計 NT$ {{ item.total }}</p>
+                          <input class="w-16 border-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-100 focus:bg-white py-1 px-2"
+                            :value="item.qty"
+                            @blur="updateCartItem(item.product.id, $event.target.value-item.qty)" 
+                            type="number">
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                  <div class="bg-white p-4 mb-4">
+                    <p class="text-xl text-bold text-right">訂單總金額 NT$ {{ total }}</p>
+                  </div>
+                  <button class="self-end w-full border-2 border-red-200 bg-red-50 hover:bg-red-300 font-semibold p-2 mb-3"
+                    type="button" aria-label="nextStep"
+                    @click="changePage">下一步，填寫購買人資料</button>
+                </template>
+              </div>
+            </div> 
+          </div>
+        </template>
+        <template v-else>
+          <div class="max-w-xl p-3 mx-auto mb-28">
+            <h2 class="text-2xl border-l-4 border-red-500 pl-2 mb-6">購買者資料</h2>
+            <v-form class="grid grid-col-1 gap-y-6"
+              v-slot="{ errors }"
+              @submit="onSubmit">
+              <label class="block">
+                <span>Email</span>
+                <v-field class="form-input"
+                  v-model="orderData.user.email"
+                  rules="email|required"
+                  :class="{ 'input-error': errors['email'] }"
+                  name="email" type="email" placeholder="請輸入 email"></v-field>
+                <error-message name="email" class="input-error font-bold"></error-message>
+              </label>
+              <label class="block">
+                <span>收件人姓名</span>
+                <v-field class="form-input" 
+                  v-model="orderData.user.name"
+                  rules="required"
+                  :class="{ 'input-error': errors['email'] }"
+                  name="name" type="text" placeholder="請輸入收件人姓名"></v-field>
+                <error-message name="name" class="input-error font-bold"></error-message>
+              </label>
+              <label class="block">
+                <span>收件人電話</span>
+                <v-field class="form-input"
+                  v-model="orderData.user.tel"
+                  :rules="isPhone"
+                  :class="{ 'input-error': errors['email'] }"
+                  name="telephone" type="tel" placeholder="請輸入聯絡電話，如；09-12345678"></v-field>
+                <error-message name="telephone" class="input-error font-bold"></error-message>
+              </label>
+              <label class="block">
+                <span>收件人地址</span>
+                <v-field class="form-input"
+                  v-model="orderData.user.address"
+                  rules="required"
+                  :class="{ 'input-error': errors['email'] }"
+                  name="address" type="text" placeholder="請輸入通訊地址"></v-field>
+                <error-message name="address" class="input-error font-bold"></error-message>
+              </label>
+              <label class="block">
+                <span>留言</span>
+                <v-field class="form-input resize-y"
+                  v-model="orderData.message"
+                  name="message" rows="5" as="textarea"></v-field>
+              </label>
+              <div class="flex gap-x-2">
+                <button class="block w-1/2 border-2 border-red-200 hover:border-red-400 font-semibold px-2 py-2"
+                  @click="changePage"
+                  type="button">返回選購</button>
+                <button class="block w-1/2 bg-red-200 hover:bg-red-300 font-semibold px-2 py-2"
+                  type="submit">送出訂單</button>
+              </div>
+            </v-form>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>    
+    <script src="https://unpkg.com/vee-validate@next"></script>
+    <script src="https://unpkg.com/@vee-validate/i18n@4.1.0"></script>
+    <script src="https://unpkg.com/@vee-validate/rules"></script>
+    <script type="module" src="./src/javascript/app.js"></script>
+  </body>
+</html>
