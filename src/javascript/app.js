@@ -152,7 +152,7 @@ const app = Vue.createApp({
       loader: 'dots',
       color: '#fca5a5',
     });
-    setTimeout(() => this.loader.hide(),  1000)
+    setTimeout(() => this.loader.hide(),  3000)
   },
 });
 
